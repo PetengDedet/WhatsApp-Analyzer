@@ -4,13 +4,32 @@ Analyze Chatsapp chat
 The script reads an exported whatsapp chat and then extracts the data. You may need to install some packages before run it
 
 ### Preview
-![](https://media.giphy.com/media/1BdstwCrX7A2n0c2DN/giphy.gif)
+![](https://i.imgur.com/8kqBa4I.png)
 
 ### Requirements
-- Python 3
+- Python 2.7+ or Python 3
 ```python
-pip install emoji pandas
+pip install pandas emoji seaborn matplotlib numpy wordcloud 
 ```
+### Usage
+```
+$ git clone https://github.com/PetengDedet/WhatsApp-Analyzer.git
+
+$ cd WhatsApp-Analyzer
+$ python python whatsapp_analyzer.py
+```
+
+### Notes
+- This script use regex to extract the data
+- Some date format may not supported
+- Tested in python 2.7+ on MacOS
+- When using virtualenv there is error backend stuff
+  I don't know how to fix it yet. Help please :)
+- If chat file located outside script directory, please fill it with fullpath not relativepath
+- There is common words file:
+  - id_cw.py for Bahasa Indonesia
+  - en_cw.py for English. Thanks @Deekayen [gist](https://gist.github.com/deekayen/4148741 "gist")
+  If you want to add any other language, you can make it one
 
 ### Getting chat source
 #### Android:
@@ -25,6 +44,7 @@ pip install emoji pandas
 - Tap on contact name/group name on the top to see the details
 - Scroll down to find "Export Chat" menu
 - Choose "Without Media"
+
 
 ## Jupyter Notebook
 Description included inside
@@ -43,7 +63,3 @@ Description included inside
 #### Raw
    ![](https://i.imgur.com/sCIEQas.png)
   
-   
-
-### Note:
-Runs on Python 3. Not tested for Python 2 yet.
