@@ -20,7 +20,14 @@ $ python python whatsapp_analyzer.py
 ```
 
 ### Notes
-- This script use regex to extract the data
+- This script use regex to extract the data.
+- Currently support below chat pattern:
+ ```python
+    "14/10/18, 11:16 - Contact Name: this is a message"
+    "2/30/18, 2:07 AM - Contact Name:  Test👌"
+    "[30/12/18 4.59.25 PM] Nama User: 🙏test"
+    "[06/07/17 13.23.30] ‪+62 123-456-78910‬: image omitted"
+  ```
 - Some date format may not supported
 - Tested in python 2.7+ on MacOS
 - When using virtualenv there is error backend stuff
