@@ -16,7 +16,7 @@ pip install pandas emoji seaborn matplotlib numpy wordcloud
 $ git clone https://github.com/PetengDedet/WhatsApp-Analyzer.git
 
 $ cd WhatsApp-Analyzer
-$ python python whatsapp_analyzer.py
+$ python whatsapp_analyzer.py
 ```
 
 ### Notes
