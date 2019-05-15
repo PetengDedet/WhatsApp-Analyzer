@@ -6,9 +6,9 @@ def replace_bad_character(line):
     return line.strip().replace(u"\u202a", "").replace(u"\u200e", "").replace(u"\u202c", "").replace(u"\xa0", " ")
 
 try: 
-    filepath = raw_input("Please input the chat filepath:")
+    filepath = raw_input("Please input the chat filepath: ")
 except NameError:
-    filepath = input("Please input chat filepath:")
+    filepath = input("Please input chat filepath: ")
 
 try:
     with io.open(filepath, "r", encoding="utf-8") as file:
@@ -40,9 +40,9 @@ elif cw == "3":
     Prompt user to input the file path
     """
     try: 
-        cw_filepath = raw_input("Please input your common word filepath")
+        cw_filepath = raw_input("Please input your common word filepath: ")
     except NameError:
-        cw_filepath = input("Please input your common word filepath")
+        cw_filepath = input("Please input your common word filepath: ")
 
 
 if len(cw_filepath) > 0:
