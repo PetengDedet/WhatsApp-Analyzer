@@ -35,6 +35,7 @@ $ python whatsapp_analyzer.py
 - If chat file located outside script directory, please fill it with fullpath not relativepath
 - There is common words file:
   - id_cw.py for Bahasa Indonesia
+  - de_cw.py for German thanks [@yafp](https://github.com/yafp)
   - en_cw.py for English. Thanks @Deekayen [gist](https://gist.github.com/deekayen/4148741 "gist")
   If you want to add any other language, you can make it one
 
