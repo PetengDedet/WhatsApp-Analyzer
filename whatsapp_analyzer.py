@@ -309,12 +309,13 @@ def get_words(msg):
     for x in words:
         if x:
             rank_word(x)
-            
+
     return words
 
 def rank_word(word):
     # Change to acount for laughs in Spanish
-    if not word.lower() in common_words and not (is_language[3] and set(list(word)) == {'j', 'a'}):
+    # Single letter words shouldn't count
+    if len(word) > 1 and not word.lower() in common_words and not (is_language[3] and set(list(word)) == {'j', 'a'}):
         popular_words[word] = popular_words.get(word, 0) + 1
         global chat_words
         chat_words += " {0}".format(word)
