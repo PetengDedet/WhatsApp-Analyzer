@@ -1,4 +1,16 @@
+# Added typos
 common_words = [
+"cant",
+"wont",
+"im",
+"dont",
+"youre",
+"ill", # I'll (could be confused for the properly spelled word for sick)
+"slo",
+"ms",
+"wanna",
+"doesnt",
+"thats",
 "the",
 "of",
 "to",

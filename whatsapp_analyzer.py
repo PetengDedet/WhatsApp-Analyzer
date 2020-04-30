@@ -19,42 +19,85 @@ except IOError as e:
     sys.exit()
 
 common_words = []
-cw_filepath = ""
+
+def get_common_words(filepath):
+    try:
+        words = __import__(filepath, globals(), locals(), [common_words]).common_words
+        return words
+    except:
+        print("Error getting common word file location")
+        sys.exit()
+
 
 cw_option = "Please select common word file or leave it blank to escape: \n\
     1: Indonesian (id_cw.py)\n\
     2: English (en_cw.py)\n\
-    3: Custom file\n\
-    4: Skip common word\n"
+    3: Deutsch (de_cw.py)\n\
+    4: Español (es_cw.py)\n\
+    5: Custom file\n\
+    6: Mixed Common Words\n\
+    7: Skip common word\n"
 try: 
     cw = raw_input(cw_option)
 except NameError:
     cw = input(cw_option)
-    
-if cw == "1":
-    cw_filepath = "id_cw"
-elif cw == "2":
-    cw_filepath = "en_cw"
-elif cw == "3":
+
+# Easier to maintain than a big if
+filepaths = {
+    "1": "id_cw",
+    "2": "en_cw",
+    "3": "de_cw",
+    "4": "es_cw"
+}
+
+# Flags to determine language
+is_language = [0 for key in filepaths]
+
+if cw in filepaths:
+    is_language[int(cw) - 1] = True
+    common_words = get_common_words(filepaths[cw])
+elif cw == "5":
     """
     Prompt user to input the file path
     """
     try: 
         cw_filepath = raw_input("Please input your common word filepath: ")
+        common_words = get_common_words(cw_filepath)
     except NameError:
         cw_filepath = input("Please input your common word filepath: ")
-
-
-if len(cw_filepath) > 0:
-
-    try:
-        common_words = __import__(cw_filepath, globals(), locals(), [common_words]).common_words
-        
+        common_words = get_common_words(cw_filepath)
+elif cw == "6":
+    """
+    Prompt user to input the options to be mixed
+    """
+    try: 
+        options = raw_input("Please input the numbers of the files to mix [separated by commas]: ").replace(" ","").strip().split(",")
+        # Turns flags to True and checks if options are ints within range
+        for o in options:
+            is_language[int(o) - 1] = True
+        list_of_lists = [get_common_words(filepaths[i]) if i in filepaths else [] for i in options]
+        common_words = list(set([j for i in list_of_lists for j in i]))
+    except NameError:
+        try:
+            options = input("Please input the numbers of the files to mix [separated by commas]: ").replace(" ","").strip().split(",")
+            # Turns flags to True and checks if options are ints within range
+            for o in options:
+                is_language[int(o) - 1] = True
+            list_of_lists = [get_common_words(filepaths[i]) if i in filepaths else [] for i in options]
+            common_words = list(set([j for i in list_of_lists for j in i]))
+        except:
+            print("Invalid options")
+            sys.exit()
     except:
-        print("Error getting common word file location")
+        print("Invalid options")
         sys.exit()
 else:
-    print("You skipped common word.")
+    if cw_option != "7":
+        print("Invalid option")
+        sys.exit()
+    else:
+        print("You skipped common word.")
+        common_words = []
 
 try: 
     verbose = raw_input("You wanna print the verbose mode? y/[N]: ") == "y" or False
@@ -156,6 +199,7 @@ def contains_attachment(body):
     pattern_attachment = [
         ".*<Media omitted>$", #English version of android attachment
         ".*<Media tidak disertakan>$", #Indonesia version of android attachment
+        ".*Archivo omitido*", #Spanish version of android attachment
         ".*Pesan tidak didukung$", #Some device not recognize sticker attachment
         ".+\.vcf \(file\sterlampir\)$", #Indonesian version of android contact card,
         ".+\.vcf \(file\sattached\)$", #Indonesian version of android contact card,
@@ -165,12 +209,16 @@ def contains_attachment(body):
         ".*Contact card omitted$",
         ".*audio omitted$",
         ".*GIF omitted$",
-        ".*sticker omitted$"
+        ".*sticker omitted$",
+        ".*imagen omitida*",
+        ".*audio omitido*",
+        ".*GIF omitido*",
+        ".*sticker omitido*",
+        ".*video omitido*"
     ]
     
     for p in pattern_attachment:
-        match = re.match(p, body)
-        if match:
+        if re.match(p, body):
             return body
     return None
 
@@ -261,12 +309,13 @@ def get_words(msg):
     for x in words:
         if x:
             rank_word(x)
-            
+
     return words
 
 def rank_word(word):
-    
-    if not word in common_words:
+    # Change to acount for laughs in Spanish
+    # Single letter words shouldn't count
+    if len(word) > 1 and not word.lower() in common_words and not (is_language[3] and set(list(word)) == {'j', 'a'}):
         popular_words[word] = popular_words.get(word, 0) + 1
         global chat_words
         chat_words += " {0}".format(word)
@@ -287,34 +336,35 @@ def increment_chat_count(member):
     total_chat += 1
 
     return member
- 
+
+# Changes to support files in Spanish, it should be checked diferently, probably using the cw_option input to determine language
 def increment_attachment_count(message):
     
-    if "image omitted" in message:
+    if "image omitted" in message or "imagen omitida" in message:
         attachments["image"] = attachments.get("image", 0) +1
         return
         
-    if "video omitted" in message:
+    if "video omitted" in message or "video omitido" in message:
         attachments["video"] = attachments.get("video", 0) +1
         return
     
-    if "audio omitted" in message:
+    if "audio omitted" in message or "audio omitido" in message:
         attachments["audio"] = attachments.get("audio", 0) +1
         return
     
-    if "document omitted" in message:
+    if "document omitted" in message or "Archivo omitido" in message:
         attachments["document"] = attachments.get("document", 0) +1
         return
     
-    if "Contact card omitted" in message or ".vcf" in message:
+    if "Contact card omitted" in message or ".vcf" in message or "tarjeta de contacto omitida" in message:
         attachments["contact"] = attachments.get("contact", 0) +1
         return
     
-    if "GIF omitted" in message:
+    if "GIF omitted" in message or "GIF omitido" in message:
         attachments["gif"] = attachments.get("gif", 0) +1
         return
     
-    if "sticker omitted" in message:
+    if "sticker omitted" in message or "sticker omitido" in message:
         attachments["sticker"] = attachments.get("sticker", 0) +1
         return
     
