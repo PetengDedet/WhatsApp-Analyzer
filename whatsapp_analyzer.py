@@ -1,625 +1,353 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
 import io
 import sys
+from collections import Counter
+import emoji
 
-    
-def replace_bad_character(line):
-    return line.strip().replace(u"\u202a", "").replace(u"\u200e", "").replace(u"\u202c", "").replace(u"\xa0", " ")
+# imported from current directory
+from chatline import Chatline
+from font_color import Color
 
-try: 
-    filepath = raw_input("Please input the chat filepath: ")
-except NameError:
-    filepath = input("Please input chat filepath: ")
 
+# print(sys.argv[0])
+# sys.exit()
+"""
+CLI Set
+"""
+parser = argparse.ArgumentParser(
+    description='Read and analyze whatsapp chat',
+    usage="python whatsapp_analyzer.py FILE [-h] [-d] [-s] [-c]"
+)
+
+stop_words_options = [ "arabic","bulgarian","catalan","czech","danish","dutch","english","finnish","french","german","hebrew","hindi","hungarian","indonesian","italian","malaysian","norwegian","polish","portuguese","romanian","russian","slovak","spanish","swedish","turkish","ukrainian","vietnamese"]
+
+parser.add_argument('file', 
+    metavar='FILE',
+    help='Chat file path')
+
+parser.add_argument(
+    '-d', 
+    '--debug', 
+    required=False, 
+    help="Debug mode. Shows details for every parsed line.", action="store_true")
+
+parser.add_argument(
+    '-s', 
+    '--stopword', 
+    required=False, 
+    choices=stop_words_options,  
+    metavar='',
+    help="Stop Words: A stop word is a commonly used word (such as 'the', 'a', 'an', 'in').\
+        In order to get insightful most common word mentioned in the chat, we need to skip these type of word.\
+        The Allowed values are: " + ", ".join(stop_words_options))
+
+parser.add_argument(
+    '-c', 
+    '--customstopword', 
+    required=False, 
+    metavar='',
+    help="Custom Stop Words. File path to stop word. File must a raw text. One word for every line"
+)
+
+args = parser.parse_args()
+
+"""
+READ FILE
+"""
 try:
-    with io.open(filepath, "r", encoding="utf-8") as file:
-        content = [replace_bad_character(l) for l in file.readlines()]
+    with io.open(args.file, "r", encoding="utf-8") as file:
+        line = file.readlines()
     
 except IOError as e:
-    print("File \"" + filepath + "\" not found. Please recheck your file location")
+    print("File \"" + args.file + "\" not found. Please recheck your file location")
     sys.exit()
 
-common_words = []
-
-def get_common_words(filepath):
+stop_words = []
+if args.stopword:
     try:
-        words = __import__(filepath, globals(), locals(), [common_words]).common_words
-        return words
-    except:
-        print("Error getting common word file location")
+        with io.open("stop-words/" + args.stopword + ".txt", "r", encoding="utf-8") as file:
+            stop_words = [x.strip() for x in file.readlines()]
+    except IOError as e:
+        print("Stop Words file not found in \"" + args.file + "\" not found.")
         sys.exit()
 
 
-cw_option = "Please select common word file or leave it blank to escape: \n\
-    1: Indonesian (id_cw.py)\n\
-    2: English (en_cw.py)\n\
-    3: Deutsch (de_cw.py)\n\
-    4: Español (es_cw.py)\n\
-    5: Custom file\n\
-    6: Mixed Common Words\n\
-    7: Skip common word\n"
-try: 
-    cw = raw_input(cw_option)
-except NameError:
-    cw = input(cw_option)
-
-# Easier to maintain than a big if
-filepaths = {
-    "1": "id_cw",
-    "2": "en_cw",
-    "3": "de_cw",
-    "4": "es_cw"
+if args.customstopword:
+    try:
+        with io.open(args.customstopword, "r", encoding="utf-8") as file:
+            stop_words = [x.strip() for x in file.readlines()]
+    except IOError as e:
+        print("Stop Words file not found in \"" + args.file + "\" not found.")
+        sys.exit()
+        
+"""
+PARSING AND COUNTING
+"""
+chat_counter = {
+    'chat_count': 0,
+    'deleted_chat_count': 0,
+    'event_count': 0,
+    'senders': [],
+    'timestamps': [],
+    'words': [],
+    'domains': [],
+    'emojis': [],
+    'fav_emoji': [],
+    'fav_word': []
 }
 
-# Flags to determine language
-is_language = [0 for key in filepaths]
+# print("Reading and parsing data. Please wait....")
 
-if cw in filepaths:
-    is_language[int(cw) - 1] = True
-    common_words = get_common_words(filepaths[cw])
-elif cw == "5":
-    """
-    Prompt user to input the file path
-    """
-    try: 
-        cw_filepath = raw_input("Please input your common word filepath: ")
-        common_words = get_common_words(cw_filepath)
-    except NameError:
-        cw_filepath = input("Please input your common word filepath: ")
-        common_words = get_common_words(cw_filepath)
-elif cw == "6":
-    """
-    Prompt user to input the options to be mixed
-    """
-    try: 
-        options = raw_input("Please input the numbers of the files to mix [separated by commas]: ").replace(" ","").strip().split(",")
-        # Turns flags to True and checks if options are ints within range
-        for o in options:
-            is_language[int(o) - 1] = True
-        list_of_lists = [get_common_words(filepaths[i]) if i in filepaths else [] for i in options]
-        common_words = list(set([j for i in list_of_lists for j in i]))
-    except NameError:
-        try:
-            options = input("Please input the numbers of the files to mix [separated by commas]: ").replace(" ","").strip().split(",")
-            # Turns flags to True and checks if options are ints within range
-            for o in options:
-                is_language[int(o) - 1] = True
-            list_of_lists = [get_common_words(filepaths[i]) if i in filepaths else [] for i in options]
-            common_words = list(set([j for i in list_of_lists for j in i]))
-        except:
-            print("Invalid options")
-            sys.exit()
-    except:
-        print("Invalid options")
-        sys.exit()
-else:
-    if cw_option != "7":
-        print("Invalid option")
-        sys.exit()
-    else:
-        print("You skipped common word.")
-        common_words = []
+previous_line = None
+for line in line:
+    chatline = Chatline(line=line, previous_line=previous_line, debug=args.debug)
+    previous_line = chatline
 
-try: 
-    verbose = raw_input("You wanna print the verbose mode? y/[N]: ") == "y" or False
-except NameError:
-    verbose = input("You wanna print the verbose mode? y/[N]: ") == "y" or False
+    # Counter
+    if chatline.line_type == 'Chat':
+        chat_counter['chat_count'] += 1
 
+    if chatline.line_type == 'Event':
+        chat_counter['event_count'] += 1
 
-import re
-import errno
-import pandas as pd
-import emoji
-from collections import Counter
-from dateutil import parser
-import operator
-import numpy as np
-import matplotlib as mpl
-#mpl.use('MacOSX')
-import matplotlib.ticker as ticker
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-import seaborn as sns
-from wordcloud import WordCloud
-# %matplotlib inline
+    if chatline.is_deleted_chat:
+        chat_counter['deleted_chat_count'] += 1
 
+    if chatline.sender is not None:
+        chat_counter['senders'].append(chatline.sender)
+        for i in chatline.emojis:
+            chat_counter['fav_emoji'].append((chatline.sender, i))
+        
+        for i in chatline.words:
+            chat_counter['fav_word'].append((chatline.sender, i))
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-"""
-Global vars
-"""
-chat_of_members = {}
-member_chat = {"member": [], "chat_count": []}
-attachments = {}
-refered_web = {"domain": [], "d_count": []}
-popular_words = {}
-chat_words = ""
-emojis = {"emj_char": [], "char_count": []}
-heat_map = {
-    "day": [], 
-    "hour": [], 
-    "chat_count": []
-}
-deleted_message = 0
-pure_chat = ""
-total_chat = 0
+    if chatline.timestamp:
+        chat_counter['timestamps'].append(chatline.timestamp)
+
+    if len(chatline.words) > 0:
+        chat_counter['words'].extend(chatline.words)
+
+    if len(chatline.emojis) > 0:
+        chat_counter['emojis'].extend(chatline.emojis)
+
+    if len(chatline.domains) > 0:
+        chat_counter['domains'].extend(chatline.domains)
+
 
 """
-Starting line mean a line that started with date time.
-Because there are multiline chat. I called it following line.
-A starting line must be classified before it's data being extracted.
+REDUCE AND ORDER DATA
 """
-def is_starting_line(line):
-    pattern = r"""
-        (\[?)       #Zero or one open square bracket '['
-        (((\d{1,2})   #1 to 2 digit date
-        (/|-)       #'/' or '-' separator
-        (\d{1,2})   #1 to 2 digit month
-        (/|-)       #'/' or '-' separator
-        (\d{2,4}))   #2 to 4 digit of year
-        (,?\s)      #Zero or one comma ',' and ingle space
-        ((\d{1,2})  #1 to 2 digit of hour
-        (:|\.)      #Colon ':' or dot '.' separator
-        (\d{2})     #2 digit of minute
-        (\.|:)?     #Zero or one of dot '.' or colon ':'
-        (\d{2})?    #Zero or one of 2 digits of second
-        (\s[AP]M)?))  #Zero or one of ('space', 'A' or 'P', and 'M'
-        (\]?\s-?\s?\s?)#Zero or one close square bracket ']', Zero or one (space and '-'), zero or one space
-        (.+)        #One or more character of chat member phone number or contact name
-    """
+
+def reduce_and_sort(data):
+    return sorted(
+        dict(
+            zip(
+                Counter(data).keys(), 
+                Counter(data).values()
+            )
+        ).items(), 
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+def reduce_and_filter_words(list_of_words):
+    val = [w.lower() for w in list_of_words if (len(w) > 1) and (w.isalnum()) and (not w.isnumeric()) and (w.lower() not in stop_words)]
+    return val
+
+def filter_single_word(w):
+    return (len(w) > 1) and (w.isalnum()) and (not w.isnumeric()) and (w.lower() not in stop_words)
+
+def reduce_fav_item(data):
+    exist = []
+    arr = []
+    for i in data:
+        if i[1] > 0 and not i[0][0] in exist:
+            exist.append(i[0][0])
+            arr.append(i)
+    return arr
     
-    return re.match(re.compile(pattern, re.VERBOSE), line)
+chat_counter['senders'] = reduce_and_sort(chat_counter['senders'])
+chat_counter['words'] = reduce_and_sort(reduce_and_filter_words(chat_counter['words']))
+chat_counter['domains'] = reduce_and_sort(chat_counter['domains'])
+chat_counter['emojis'] = reduce_and_sort(chat_counter['emojis'])
+chat_counter['timestamps'] = reduce_and_sort([(x.strftime('%A'), x.strftime('%H')) for x in chat_counter['timestamps']])
+chat_counter['fav_emoji'] = reduce_fav_item(reduce_and_sort(chat_counter['fav_emoji']))
+chat_counter['fav_word'] = reduce_fav_item(reduce_and_sort([x for x in chat_counter['fav_word'] if filter_single_word(x[1])]))
 
 """
-"Is Chat" means the body of a line is not an event.
-May contains attachment
+VISUALIZE
 """
-def is_chat(body):
-    pattern = r"""
-            ([^:]+)#Chat member
-            (:)   #Colon separator
-            (.+)  #One or more charachter of message content
-    """
+def printBar (value, total, label = '', prefix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    filledLength = int(value / (total / length))
+    bar = fill * filledLength + '' * (length - filledLength)
+    print("\r{} |{} {}".format(label, bar, Color.bold(str(value))), end = printEnd)
+    print()
+
+def printBarChart(data, fill="█"):
+    if len(data) <= 0:
+        print("Empty data")
+        return
     
-    return re.match(re.compile(pattern, re.VERBOSE), body)
+    total = max([x[1] for x in data])
+    max_label_length = len(sorted(data, key=lambda tup: len(tup[0]), reverse=True)[0][0])
+    for i in data:
+        label = i[0] + " " * (max_label_length - len(i[0]))
+        printBar(i[1], total, length=50, fill=fill, label=label)
 
-"""
-Classify attachment
-Note: in Android, there is no proper description wether it's a image, 
-      video, audio, gif, or sticker.
-"""
-def contains_attachment(body):
-    pattern_attachment = [
-        ".*<Media omitted>$", #English version of android attachment
-        ".*<Media tidak disertakan>$", #Indonesia version of android attachment
-        ".*Archivo omitido*", #Spanish version of android attachment
-        ".*Pesan tidak didukung$", #Some device not recognize sticker attachment
-        ".+\.vcf \(file\sterlampir\)$", #Indonesian version of android contact card,
-        ".+\.vcf \(file\sattached\)$", #Indonesian version of android contact card,
-        ".*image omitted$",
-        ".*video omitted$",
-        ".*document omitted$",
-        ".*Contact card omitted$",
-        ".*audio omitted$",
-        ".*GIF omitted$",
-        ".*sticker omitted$",
-        ".*imagen omitida*",
-        ".*audio omitido*",
-        ".*GIF omitido*",
-        ".*sticker omitido*",
-        ".*video omitido*"
+def printCalendar(data):
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    hours = ['0' + str(x) if len(str(x)) < 2 else str(x) for x in range(24)]
+
+    max_val = float(data[max(data, key=data.get)]) if len(data) else 0
+
+    ticks = [
+        0,
+        0.25 * max_val,
+        0.50 * max_val,
+        0.75 * max_val,
     ]
-    
-    for p in pattern_attachment:
-        if re.match(p, body):
-            return body
-    return None
 
-"""
-Event means logs of chat activity e.g member left, member added, removed, etc.
-This kind of line can not count as a chat
-"""
-def is_event(body):
-    pattern_event = [
-        "Messages to this group are now secured with end-to-end encryption\.$",
-        ".+\screated this group$",
-        ".+\skeluar$",
-        ".+\sleft$",
-        ".+\stelah bergabung menggunakan tautan undangan grup ini$",
-        ".+\smenambahkan\s.+",
-        ".+\sadded\s.+",
-        ".+\sremoved\s.+",
-        ".*You joined using this group's invite links$",
-        ".+'s security code changed\.$",
-        ".*telah mengganti nomor teleponnya ke nomor baru. Ketuk untuk mengirim pesan atau menambahkan nomor baru\.$",
-        ".*changed their phone number to a new number. Tap to message or add the new number\.$"
-    ]
-    
-    for p in pattern_event:
-        match = re.match(p, body)
-        if match:
-            return match
-    return None
-"""
-Deleted message
-"""
-def is_deleted(body):
-    p = [
-        ".*This message was deleted\.$",
-        ".*Pesan ini telah dihapus$"
-    ]
-    
-    for p in p:
-        match = re.match(p, body)
-        if match:
-            return body
-    return None
-
-"""
-EXTRACT TIMESTAMP
-"""
-def extract_timestamp(time_string):
-    return parser.parse(time_string)
-
-"""
-Check if chat contais a url
-"""
-def extract_url(body):
-    pattern = "https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+"
-    
-    return re.findall(pattern, body)
-
-def get_domain(str):
-    domain = str.replace("http://", '')
-    domain = domain.replace("https://", '')
-    domain = domain.split("/")
-    return domain[0]
-
-"""
-EMOJI
-"""
-def extract_emojis(string):
-    emj = []
-    for c in string:
-        if c in emoji.UNICODE_EMOJI:
-            emj.append(c)
-
-    if len(emj) > 0:
-        increment_emoji_count(emj)
-    
-    return emj
-
-"""
-Count top words
-"""
-def get_words(msg):
-    
-    #remove non alpha content
-    regex = re.sub(r"[^a-z\s]+", "", msg.lower())
-    regex = re.sub(r'[^\x00-\x7f]',r'', regex)
-    words = regex.split(" ")
-    
-    for x in words:
-        if x:
-            rank_word(x)
-
-    return words
-
-def rank_word(word):
-    # Change to acount for laughs in Spanish
-    # Single letter words shouldn't count
-    if len(word) > 1 and not word.lower() in common_words and not (is_language[3] and set(list(word)) == {'j', 'a'}):
-        popular_words[word] = popular_words.get(word, 0) + 1
-        global chat_words
-        chat_words += " {0}".format(word)
+    sys.stdout.write("     ")
+    for day in days:
+        sys.stdout.write('\t[' + day[:3] + "]")
         
-    return word
-    
-"""
-Counting function
-"""
+    sys.stdout.write('\n')
 
-"""
-Rank the 'Most Active user'
-"""        
-def increment_chat_count(member):
-    member_chat["member"].append(member)
-    member_chat["chat_count"].append(1)
-    global total_chat
-    total_chat += 1
-
-    return member
-
-# Changes to support files in Spanish, it should be checked diferently, probably using the cw_option input to determine language
-def increment_attachment_count(message):
-    
-    if "image omitted" in message or "imagen omitida" in message:
-        attachments["image"] = attachments.get("image", 0) +1
-        return
+    for hour in hours:
+        sys.stdout.write("[" + hour + ':00]')
         
-    if "video omitted" in message or "video omitido" in message:
-        attachments["video"] = attachments.get("video", 0) +1
-        return
-    
-    if "audio omitted" in message or "audio omitido" in message:
-        attachments["audio"] = attachments.get("audio", 0) +1
-        return
-    
-    if "document omitted" in message or "Archivo omitido" in message:
-        attachments["document"] = attachments.get("document", 0) +1
-        return
-    
-    if "Contact card omitted" in message or ".vcf" in message or "tarjeta de contacto omitida" in message:
-        attachments["contact"] = attachments.get("contact", 0) +1
-        return
-    
-    if "GIF omitted" in message or "GIF omitido" in message:
-        attachments["gif"] = attachments.get("gif", 0) +1
-        return
-    
-    if "sticker omitted" in message or "sticker omitido" in message:
-        attachments["sticker"] = attachments.get("sticker", 0) +1
-        return
-    
-    ##Unknown attachment
-    attachments["unknown"] = attachments.get("unknown", 0) +1
-
-    
-
-def increment_link_count(urls):
-    for url in urls:
-        increment_domain_count(get_domain(url))
-                    
-    return len(urls)
-    
-def increment_domain_count(domain):
-    refered_web["domain"].append(domain)
-    refered_web["d_count"].append(1)
-
-def increment_emoji_count(char_list):
-    groups = Counter(char_list)
-    for c in groups.items():
-        emojis["emj_char"].append(c[0])
-        emojis["char_count"].append(c[1])
-        
-def increment_heatmap(dt):
-    heat_map["day"].append(dt.strftime("%A"))
-    heat_map["hour"].append(dt.strftime("%H"))
-    heat_map["chat_count"].append(1)
-
-def increment_deleted():
-    global deleted_message
-    deleted_message += 1
-"""
-Self explained
-"""
-def parse_line(line, verbose):
-    prefix = ""
-    is_starting = is_starting_line(line)
-    
-    if is_starting:
-        #Check wether the starting line is a chat or an event
-        body = is_starting.group(18)
-        chat = is_chat(body)
-        dt = extract_timestamp(is_starting.group(2).replace(".", ":"))
-        increment_heatmap(dt)
-        
-        if chat:
-            has_attachment = contains_attachment(chat.group(3))
-            increment_chat_count(chat.group(1))
-            message_body = chat.group(3)
-            #print(chat.groups())
+        for day in days:
             
+            dict_key = (day, hour)
             
-            if has_attachment:
-                prefix = "@@@" 
-                increment_attachment_count(has_attachment)
+            if dict_key in data:
+                # tick = str(ct[dict_key])
                 
-                if verbose: print(bcolors.OKBLUE + bcolors.HEADER + prefix + line)
-                
-            else:
-                if is_deleted(message_body):
-                    increment_deleted()
+                if data[dict_key] > ticks[3]:
+                    tick = Color.custom("███", bold=True, fg_red=True)
+                elif data[dict_key] > ticks[2]:
+                    tick = Color.custom("▓▓▓", bold=True, fg_orange=True)
+                elif data[dict_key] > ticks[1]:
+                    tick = Color.custom("▒▒▒", bold=True, fg_green=True)
                 else:
-                    prefix = "+++"
-                    
-                    #URL & Domain
-                    urls = extract_url(message_body)
-                    if urls:
-                        increment_link_count(urls)
-
-                    #Emoji
-                    emjs = extract_emojis(message_body)
-                    
-                    #Word Count & Wordcloud
-                    get_words(message_body)
-                
-                    if verbose: print(bcolors.OKGREEN + bcolors.HEADER + prefix + line)
-                
-        elif is_event(body):
-            prefix = "***"
-                
-            if verbose: print(bcolors.WARNING + prefix + line)
-        
-    else:
-        prefix = "|||"
-        
-        #URL & Domain
-        urls = extract_url(line)
-        if urls:
-            increment_link_count(urls)
-        
-        #Emoji    
-        emjs = extract_emojis(line)
-        
-        #Word Count & Wordcloud
-        get_words(line)
-
-        if verbose: print(bcolors.FAIL + prefix + line)
-
-print("Extracting data. Please wait....")
-
-for line in content:
-    parse_line(line, verbose)
-    
-print("Generating dataframe...")
-"""
-DataFrame
-"""
-chat_per_member = (pd.DataFrame(member_chat)
-                     .groupby(["member"])
-                     .sum()
-                     .sort_values(by = ['chat_count'], ascending=False))
-popular_words_df = sorted(popular_words.items(), key=operator.itemgetter(1), reverse=True)
-domains = (pd.DataFrame(refered_web)
-                     .groupby(["domain"])
-                     .sum()
-                     .sort_values(by = ['d_count'], ascending=False))
-emojis_df = (pd.DataFrame(emojis)
-                     .groupby(["emj_char"])
-                     .sum()
-                     .sort_values(by = ['char_count'], ascending=False))
-top_repeated_emoji = (pd.DataFrame(emojis)
-                     .sort_values(by = ['char_count'], ascending=False))
-heatmap_df = pd.DataFrame(heat_map)
-grouped_heatmap = heatmap_df.groupby(["day", "hour"]).sum().sort_values(by=["chat_count"], ascending=False)
-pivoted_heatmap = pd.pivot_table(grouped_heatmap, values='chat_count', index=['day'], columns=['hour'])
-
-print("Generating plot...")
-
-"""
-Top Member Chat
-"""
-top_member = chat_per_member.head(20)
-if not top_member.empty:
-    sns.set()
-    member_plot = top_member.plot(kind='bar', legend=None, title="Top 20 active member", figsize=(18, 6), color="purple")
-    member_plot.set_xlabel("Member (phone number/contact name)")
-    member_plot.set_ylabel("Chat Count")
-    for i, v in enumerate(top_member["chat_count"]):
-        member_plot.text(i - .15, v + 3, v, color="#004d40")
-else:
-    print("This chat has no member")
-
-"""
-Heatmap
-"""
-heatmap_df = pd.DataFrame(heat_map)
-if not heatmap_df.empty:
-    grouped_heatmap = heatmap_df.groupby(["day", "hour"]).sum().sort_values(by=["chat_count"], ascending=False)
-    pivoted_heatmap = pd.pivot_table(grouped_heatmap, values='chat_count', index=['day'], columns=['hour'])
-    plt.figure(figsize = (16,5))
-    sns.heatmap(pivoted_heatmap, 
-                annot=True, 
-                fmt=".0f", 
-                linewidths=.2,
-                cmap="YlGnBu",
-                cbar=False
-               )
-
-    plt.show()
-else:
-    print("This chat does not contain any datetime")
-
-s_attachments = sorted(attachments.items(), key = operator.itemgetter(1), reverse=True)
-if s_attachments:
-    at_labels = [x[0].title() + " " + str(x[1]) for x in s_attachments]
-
-    at_explode = tuple([0 + i * 0.1 for i in range(len(s_attachments))])
-    at_sizes = [x[1] for x in s_attachments]
-    at_colors = ["#FF6D00", "#64DD17", "#00B8D4", "#304FFE", "#AA00FF", "#d50000", "#546E7A", "#dddddd"]
-    at_pie = plt.pie(at_sizes,  
-             autopct='%1.1f%%',
-             explode=at_explode,
-             pctdistance=1.2,
-             colors=at_colors,
-             startangle=160,
-             radius=1.3,
-             wedgeprops = { 'linewidth' : 2, 'edgecolor' : 'white' },
-    )
-
-    at_centre_circle = plt.Circle((0,0),0.85,color='white', fc='white',linewidth=1.25)
-    at_fig = plt.gcf()
-    at_fig.gca().add_artist(at_centre_circle)
-
-    plt.legend(
-        loc='upper left',
-        labels=at_labels,
-        prop={'size': 11},
-        bbox_to_anchor=(1, 1)
-    )
-    at_axis = plt.axis('equal')
-
-    plt.show()
-else:
-    print("This chat contains no attachment.")
-
-"""
-Top Website
-"""
-top_web = domains.head(20).sort_values("d_count")
-if not top_web.empty:
-    mpl.rc('font', **{'sans-serif' : 'arial', 'family' : 'sans-serif'})
-    web_plot = top_web.plot(kind='barh', legend=None, title="Top 20 mentioned domain", figsize=(20,10), color="#1de9b6")
-    web_plot.set_xlabel("Mention Count")
-    for i, v in enumerate(top_web["d_count"]):
-        web_plot.text(1, i - .15, v, color="purple")
-else:
-    print("This chat not contains any link")
-
-"""
-Wordcloud
-"""
-if chat_words:
-    wordcloud = WordCloud(
-        width = 1000, 
-        height = 500,
-        background_color = "white"
-    ).generate(chat_words)
-
-    plt.figure(figsize=(15,8))
-    plt.imshow(wordcloud)
-    plt.axis("off")
-    plt.show()
-else:
-    print("This chat contains no word")
-
-"""
-Raw Output
-"""
-print("\n=======================================\n")
-print("#Total Chat: {0}".format(total_chat))
-print("#Deleted Message: {0}".format(deleted_message))
-print("#Total Attachment: {0}".format(sum([x[1] for x in s_attachments])))
-for a in s_attachments:
-    print("  - : {0}".format(a))
-    
+                    tick = Color.custom("░░░", bold=True, fg_light_grey=True)
+            else:
+                tick = Color.custom('===', bold=False, fg_white=True)
+            
+            sys.stdout.write('\t ' + tick)
+        sys.stdout.write('\n')
 
 
-print("\n#Top 20 Member")
-print("-----------------")
-print(top_member)
+# Senders
+data = chat_counter['senders']
+print(Color.red("-" * 50))
+print(Color.red("Chat Count by Sender"))
+print(Color.red("-" * 50))
+print("Active Sender\t:", Color.red("{}".format(len(data))))
+print("Total Chat\t:", Color.red("{}".format(sum([x[1] for x in data]))))
+print("Average \t:", Color.red("{:.1f} chat per member".format((sum([x[1] for x in data]) / len(data)) if len(data) else 0)))
+print()
+printBarChart(data[:20], fill=Color.red("█"))
+if len(data) > 20:
+    print("---")
+    print("Other from {} member | {}".format(Color.red(str(len(data[20:]))), Color.red(str(sum([x[1] for x in data[20:]])))))
+print()
+print()
+
+# Domains
+data = chat_counter['domains']
+print(Color.blue("-" * 50))
+print(Color.blue("Mentioned Domain (Shared Link/URL)"))
+print(Color.blue("-" * 50))
+print("Domain Count\t: ", Color.blue(str(len(data))))
+print("Mention Count\t: ", Color.blue(str(sum([x[1] for x in data]))))
+print()
+printBarChart(data[:20], fill=Color.blue("█"))
+if len(data) > 20:
+    print("---")
+    print("Other {} domain | {}".format(Color.blue(str(len(data[20:]))), Color.blue(str(sum([x[1] for x in data[20:]])))))
+print()
+print()
 
 
-print("\n#Top 20 Words")
-print("-----------------")
-for k, v in enumerate(popular_words_df):
-    if k < 20:
-        print(v)
-    else:
-        break
-        
-print("\n#Top 20 Emoji")
-print("-----------------")
-print(emojis_df.head(20))
+# Emojis
+data = [(x[0] + " (" + emoji.demojize(x[0]) + ") ", x[1]) for x in chat_counter['emojis']]
+print(Color.orange("-" * 50))
+print(Color.orange("Used Emoji"))
+print(Color.orange("-" * 50))
+print("Unique Emoji\t: ", Color.orange(str(len(data))))
+print("Total Count\t: ", Color.orange(str(sum([x[1] for x in data]))))
+print()
+printBarChart(data[:20], fill=Color.orange("█"))
+if len(data) > 20:
+    print("---")
+    print("Other {} emoji | {}".format(Color.orange(str(len(data[20:]))), Color.orange(str(sum([x[1] for x in data[20:]])))))
+print()
+print()
 
-print("\n#Top 20 Mentioned Website")
-print("-----------------")
-print(top_web.sort_values("d_count", ascending=False))
+# Fav Emojis
+data = [(x[0][0] + " | " + x[0][1] + " | (" + emoji.demojize(x[0][1]) + ")", x[1]) for x in chat_counter['fav_emoji']]
+print(Color.orange("-" * 50))
+print(Color.orange("Favorite Emoji by Member"))
+print(Color.orange("-" * 50))
+print()
+printBarChart(data[:20], fill=Color.orange("█"))
+print()
+print()
+
+# Words
+data = chat_counter['words']
+print(Color.green("-" * 50))
+print(Color.green("Used Word"))
+print(Color.green("-" * 50))
+print("Unique Word\t: ", Color.green(str(len(data))))
+print("Total Count\t: ", Color.green(str(sum([x[1] for x in data]))))
+print()
+printBarChart(data[:20], fill=Color.green("█"))
+if len(data) > 20:
+    print("---")
+    print("Other {} word | {}".format(Color.green(str(len(data[20:]))), Color.green(str(sum([x[1] for x in data[20:]])))))
+print()
+print()
+
+# Fav Word
+data = [(x[0][0] + " | " + x[0][1] + " | ", x[1]) for x in chat_counter['fav_word']]
+print(Color.green("-" * 50))
+print(Color.green("Favorite Word by Member"))
+print(Color.green("-" * 50))
+print()
+printBarChart(data[:20], fill=Color.green("█"))
+print()
+print()
+
+# Heatmap
+data = chat_counter['timestamps']
+print(Color.purple("-" * 50))
+print(Color.purple("Chat Activity Heatmap"))
+print(Color.purple("-" * 50))
+if len(data) > 0:
+    print("Most Busy\t: {}, at {} ({} chat)".format(
+        Color.purple(str(data[0][0][0])), 
+        Color.purple(str(data[0][0][1]) + ":00"), 
+        Color.purple(str(data[0][1]))))
+    print("Most Silence\t: {}, at {} ({} chat)".format(
+        Color.purple(str(data[-1][0][0])), 
+        Color.purple(str(data[-1][0][1]) + ":00"), 
+        Color.purple(str(data[-1][1]))))
+print()
+print('---')
+print('X: Days')
+print('Y: Hours')
+print('---')
+print('Less [{}{}{}{}{}] More'.format(
+    Color.custom("===", bold=False), 
+    Color.custom("░░░", bold=True, fg_light_grey=True),
+    Color.custom("▒▒▒", bold=True, fg_green=True),
+    Color.custom("▓▓▓", bold=True, fg_orange=True),
+    Color.custom("███", bold=True, fg_red=True)
+))
+print()
+printCalendar(dict(data))
