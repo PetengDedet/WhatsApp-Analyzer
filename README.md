@@ -1,25 +1,95 @@
 # WhatsApp-Analyzer
-Analyze Chatsapp chat
+Analyze Whatsapp chat
 
-The script reads an exported whatsapp chat and then extracts the data. You may need to install some packages before run it
+The script reads an exported whatsapp chat and then extracts the data. You may need to install some packages before run it.
+
+##### Supported Analysis
+----------------------
+- Chat Count
+- Chat Avaerage
+- Member/Sender Rank
+- Website/URL/Link Domain Rank
+- Word Count and Rank
+- Most Used Word by Sender
+- Emoji Usage Rank
+- Most Used Emoji by Sender
+- Timestamp Heatmap
+- Attachment Classification (In Android, there is no difference pattern for attachment. But in iOS we can actually classify between Image, Video, Audio, GIF, Sticker, Document, and Contact Card)
 
 ### Preview
-![](https://i.imgur.com/8kqBa4I.png)
+----------------------
+- Sender Rank
+![Sender rank](https://i.imgur.com/5MnQRhV.png)
+- Domain rank
+![Domain rank](https://i.imgur.com/jASt34p.png)
+- Word Rank
+![Word rank](https://i.imgur.com/NmfWGSa.png)
+- Most used word by sender
+![Most used word by sender](https://i.imgur.com/GdtzLFy.png)
+- Emoji rank
+![Emoji rank](https://i.imgur.com/PqCVcej.png)
+- Most used emoji by sender
+![Most used emoji by sender](https://i.imgur.com/DauFsMx.png)
+- Chat activity heatmap
+![Heatmap](https://i.imgur.com/6KyNJF2.png)
 
 ### Requirements
-- Python 2.7+ or Python 3
+----------------------
+- Python 3.6+
 ```python
-pip install pandas emoji seaborn matplotlib numpy wordcloud 
+pip install -r requirements.txt
 ```
 ### Usage
+----------------------
 ```
 $ git clone https://github.com/PetengDedet/WhatsApp-Analyzer.git
 
 $ cd WhatsApp-Analyzer
-$ python whatsapp_analyzer.py
+$ python whatsapp_analyzer.py chat_example.txt --stopword indonesian 
 ```
 
+```shell
+usage: python whatsapp_analyzer.py FILE [-h] [-d] [-s] [-c]
+
+Read and analyze whatsapp chat
+
+positional arguments:
+  FILE                  Chat file path
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --debug           Debug mode. Shows details for every parsed line.
+  -s , --stopword       Stop Words: A stop word is a commonly used word (such
+                        as 'the', 'a', 'an', 'in'). In order to get insightful
+                        most common word mentioned in the chat, we need to
+                        skip these type of word. The Allowed values are:
+                        arabic, bulgarian, catalan, czech, danish, dutch,
+                        english, finnish, french, german, hebrew, hindi,
+                        hungarian, indonesian, italian, malaysian, norwegian,
+                        polish, portuguese, romanian, russian, slovak,
+                        spanish, swedish, turkish, ukrainian, vietnamese
+  -c , --customstopword 
+                        Custom Stop Words. File path to stop word. File must a
+                        raw text. One word for every line
+```
+### Stop Words
+----------------------
+I include stop words for saveral languages from https://github.com/Alir3z4/stop-words.
+You can use your own stop word file.
+Just use `-c` argument followed by filepath.
+One word for each file like below
+```
+able
+ableabout
+about
+above
+abroad
+abst
+```
+
+
 ### Notes
+----------------------
 - This script use regex to extract the data.
 - Currently support below chat pattern:
  ```python
@@ -29,15 +99,53 @@ $ python whatsapp_analyzer.py
     "[06/07/17 13.23.30] ‪+62 123-456-78910‬: image omitted"
   ```
 - Some date format may not supported
-- Tested in python 2.7+ on MacOS
-- When using virtualenv there is error backend stuff
-  I don't know how to fix it yet. Help please :)
-- If chat file located outside script directory, please fill it with fullpath not relativepath
-- There is common words file:
-  - id_cw.py for Bahasa Indonesia
-  - de_cw.py for German thanks [@yafp](https://github.com/yafp)
-  - en_cw.py for English. Thanks @Deekayen [gist](https://gist.github.com/deekayen/4148741 "gist")
-  If you want to add any other language, you can make it one
+
+
+## Flowchart
+----------------------
+Describe how the script identify and classify the chat
+```
+           +------------------+
+      +----+    Empty line?   +----+
+      |    +------------------+    |
+      |                            |
+      |                            |
+  +---v---+                   +----v---+
+  |  Yes  | +-----------------+   No   |
+  +-------+ |                 +---+----+
+            |                     |
+  +---------+-+             +-----v-----+
+  | Event Log |        +----+    Chat   +----+
+  +-----------+        |    +-----------+    |
+                       |                     |
+                +------v-----+         +-----v------+   +--------------------+
+          +-----+Regular Chat+----+    | Attachment +-->+ Clasify Attachment |
+          |     +------------+    |    +------------+   +-------+------------+
+          v                       v                             |
++---------+---------+   +---------+----------+                  |
+|   Starting Line   |   |   Following Line   |                  |
++------+------------+   +-+------------------+                  |
+       |                  |                                     |
+       |                  |                                     |
+       |           +------v-------+                             |
+       |           | COUNTER      |                             |
+       |           | 1 Chat       |                             |
+       +---------->+ 2 Timestamp  +<----------------------------+
+                   | 3 Sender     |
+                   | 4 Domain     |
+                   | 5 Words      |
+                   | 6 Attachment |
+                   | 7 Emoji      |
+                   +-----+--------+
+                         |
+                         |
+                         |
+                         v
+              +----------+----------------+
+              |          Visualize        |
+              +---------------------------+
+```
+
 
 ### Getting chat source
 #### Android:
@@ -53,21 +161,13 @@ $ python whatsapp_analyzer.py
 - Scroll down to find "Export Chat" menu
 - Choose "Without Media"
 
+## Other Tech Port
+----------------------
+- Web: Coming soon
+- Jupyter Notebook: Coming soon
+- NodeJS: Coming soon
 
-## Jupyter Notebook
-Description included inside
-#### Visualization Preview
- - Top 20 most active member
-   ![](https://i.imgur.com/dqC83Gb.png)
- - Peaktime
-   ![](https://i.imgur.com/C4D2cjw.png)
- - Attachment Share
-   ![](https://i.imgur.com/mEWKSRj.png)
- - Top Mentioned Website
-   ![](https://i.imgur.com/9Y8hTwE.png)
- - Wordcloud
-   ![](https://i.imgur.com/RaGDrEp.png)
-
-#### Raw
-   ![](https://i.imgur.com/sCIEQas.png)
-  
+### Help Needed
+----------------------
+- Need contributor to rearrange directory structure to match python best practice.
+- iOS exported example needed 
