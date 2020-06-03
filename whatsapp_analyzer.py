@@ -12,8 +12,6 @@ from chatline import Chatline
 from font_color import Color
 
 
-# print(sys.argv[0])
-# sys.exit()
 """
 CLI Set
 """
@@ -59,7 +57,7 @@ READ FILE
 """
 try:
     with io.open(args.file, "r", encoding="utf-8") as file:
-        line = file.readlines()
+        lines = file.readlines()
     
 except IOError as e:
     print("File \"" + args.file + "\" not found. Please recheck your file location")
@@ -99,10 +97,9 @@ chat_counter = {
     'fav_word': []
 }
 
-# print("Reading and parsing data. Please wait....")
 
 previous_line = None
-for line in line:
+for line in lines:
     chatline = Chatline(line=line, previous_line=previous_line, debug=args.debug)
     previous_line = chatline
 
