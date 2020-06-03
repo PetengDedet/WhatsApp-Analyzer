@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from sys import platform
 
 class Color(object):
     """
@@ -55,8 +56,12 @@ class Color(object):
                 raise KeyError('def color: parameter `{}` does not exist'.format(style))
 
         self.color_text += text
+        if platform == 'win32':
+            self.color_text = text
 
     def __format__(self):
+        if platform == 'win32':
+            return "{}".format(self.color_text)
         return '\033[0m{}\033[0m'.format(self.color_text)
 
     @classmethod
