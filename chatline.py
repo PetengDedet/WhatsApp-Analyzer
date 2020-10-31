@@ -53,7 +53,7 @@ class Chatline:
             (\d{2})     #2 digit of minute
             (\.|:)?     #Zero or one of dot '.' or colon ':'
             (\d{2})?    #Zero or one of 2 digits of second
-            (\s[AP]M)?))  #Zero or one of ('space', 'A' or 'P', and 'M'
+            (\s[apAP][mM])?))  #Zero or one of ('space', 'A' or 'P', and 'M'
             (\]?\s-?\s?\s?)#Zero or one close square bracket ']', Zero or one (space and '-'), zero or one space
             (.+)        #One or more character of chat member phone number or contact name
         """
