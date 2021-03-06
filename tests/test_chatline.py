@@ -36,3 +36,10 @@ class TestChatline(TestCase):
         expected = datetime.datetime(2020, 10, 23, 17, 0, 0)
 
         self.assertEqual(cl.timestamp, expected)
+
+    def test_extract_emojis(self):
+        cl = Chatline('[23/10/2020, 5:00:00 pm] User: message 🍆')
+
+        expected = ['🍆']
+
+        self.assertEqual(cl.emojis, expected)
