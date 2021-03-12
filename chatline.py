@@ -116,7 +116,7 @@ class Chatline:
     def extract_emojis(self, string=""):
         emj = []
         for c in string:
-            if c in emoji.UNICODE_EMOJI:
+            if c in emoji.UNICODE_EMOJI_ALIAS_ENGLISH:
                 emj.append(c)
         return emj
 
