@@ -1,12 +1,12 @@
 # WhatsApp-Analyzer
-Analyze Whatsapp chat
+Analyze WhatsApp chat
 
-The script reads an exported whatsapp chat and then extracts the data. You may need to install some packages before run it.
+The script reads an exported WhatsApp chat and then extracts the data. You may need to install some packages before running it.
 
 ##### Supported Analysis
 ----------------------
 - Chat Count
-- Chat Avaerage
+- Chat Average
 - Member/Sender Rank
 - Website/URL/Link Domain Rank
 - Word Count and Rank
@@ -14,7 +14,7 @@ The script reads an exported whatsapp chat and then extracts the data. You may n
 - Emoji Usage Rank
 - Most Used Emoji by Sender
 - Timestamp Heatmap
-- Attachment Classification (In Android, there is no difference pattern for attachment. But in iOS we can actually classify between Image, Video, Audio, GIF, Sticker, Document, and Contact Card)
+- Attachment Classification (In Android, there is no difference pattern for attachment. But in iOS we can actually classify between Image, Video, Audio, GIF, Sticker, Document and Contact Card)
 
 ### Preview
 ----------------------
@@ -74,7 +74,7 @@ optional arguments:
 ```
 ### Stop Words
 ----------------------
-I include stop words for saveral languages from https://github.com/Alir3z4/stop-words.
+I've included stop words for several languages from https://github.com/Alir3z4/stop-words.
 You can use your own stop word file.
 Just use `-c` argument followed by filepath.
 One word for each file like below
@@ -90,15 +90,15 @@ abst
 
 ### Notes
 ----------------------
-- This script use regex to extract the data.
-- Currently support below chat pattern:
+- This script uses regex to extract the data.
+- Currently supports the chat pattern below:
  ```python
     "14/10/18, 11:16 - Contact Name: this is a message"
     "2/30/18, 2:07 AM - Contact Name:  Test👌"
     "[30/12/18 4.59.25 PM] Nama User: 🙏test"
     "[06/07/17 13.23.30] ‪+62 123-456-78910‬: image omitted"
   ```
-- Some date format may not supported
+- Some date formats may not be supported
 
 
 ## Flowchart
@@ -150,7 +150,7 @@ Describe how the script identify and classify the chat
 ### Getting chat source
 #### Android:
 - Open a chat/group chat
-- Tap on trhee dots oh the top right
+- Tap on three dots on the top right
 - Tap "More"
 - Choose "Export chat"
 - Choose "Without Media"
