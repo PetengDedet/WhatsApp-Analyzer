@@ -11,6 +11,10 @@ import emoji
 from chatline import Chatline
 from font_color import Color
 
+import time
+
+start_time = time.time()
+
 
 """
 CLI Set
@@ -20,7 +24,7 @@ parser = argparse.ArgumentParser(
     usage="python whatsapp_analyzer.py FILE [-h] [-d] [-s] [-c]"
 )
 
-stop_words_options = [ "arabic","bulgarian","catalan","czech","danish","dutch","english","finnish","french","german","hebrew","hindi","hungarian","indonesian","italian","malaysian","norwegian","polish","portuguese","romanian","russian","slovak","spanish","swedish","turkish","ukrainian","vietnamese"]
+stop_words_options = {"arabic","bulgarian","catalan","czech","danish","dutch","english","finnish","french","german","hebrew","hindi","hungarian","indonesian","italian","malaysian","norwegian","polish","portuguese","romanian","russian","slovak","spanish","swedish","turkish","ukrainian","vietnamese"}
 
 parser.add_argument('file', 
     metavar='FILE',
@@ -80,7 +84,9 @@ if args.customstopword:
     except IOError as e:
         print("Stop Words file not found in \"" + args.file + "\" not found.")
         sys.exit()
-        
+
+stop_words = set(stop_words)      
+
 """
 PARSING AND COUNTING
 """
@@ -348,3 +354,5 @@ print('Less [{}{}{}{}{}] More'.format(
 ))
 print()
 printCalendar(dict(data))
+
+print("--- %s seconds ---" % (time.time() - start_time))
