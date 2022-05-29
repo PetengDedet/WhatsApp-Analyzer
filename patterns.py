@@ -38,6 +38,7 @@ IS_ATTACHMENT = [
     r".*<Media omitted>$", #English version of android attachment
     r".*<Media tidak disertakan>$", #Indonesia version of android attachment
     r".*Archivo omitido*", #Spanish version of android attachment
+    r".*<Media omessi>$", #Italian version of android attachment
     r".*Pesan tidak didukung$", #Some device not recognize sticker attachment
     r".+\.vcf \(file\sterlampir\)$", #Indonesian version of android contact card,
     r".+\.vcf \(file\sattached\)$", #Indonesian version of android contact card,
