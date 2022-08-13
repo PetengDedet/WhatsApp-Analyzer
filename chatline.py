@@ -114,11 +114,7 @@ class Chatline:
         return words
 
     def extract_emojis(self, string=""):
-        emj = []
-        for c in string:
-            if c in emoji.UNICODE_EMOJI_ALIAS_ENGLISH:
-                emj.append(c)
-        return emj
+        return [c["emoji"] for c in emoji.emoji_list(string)]
 
     def is_event(self, body=""):
         """Detect wether the body of chat is event log.
