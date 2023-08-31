@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
-from dateutil import parser
+from datetime import datetime
 import emoji
 import patterns
 
@@ -90,7 +90,7 @@ class Chatline:
         """
         EXTRACT TIMESTAMP
         """
-        timestamp = parser.parse(time_string)
+        timestamp = datetime.strptime(time_string, "%d/%m/%Y, %H:%M:%S")
         return timestamp
 
     def extract_url(self, body=""):
